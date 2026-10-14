@@ -16,7 +16,8 @@ export function route<A extends unknown[]>(handler: (...args: A) => Promise<Resp
       return await handler(...args);
     } catch (e) {
       if (e instanceof HttpError) return Response.json({ error: e.message }, { status: e.status });
-      console.error("Memory request failed", e instanceof Error ? e.name : "Unknown error");
+      const detail = e instanceof Error ? { name: e.name, code: (e as { code?: string }).code ?? null, message: e.message.split("\n").filter(Boolean).slice(-3).join(" ") } : { name: "Unknown error" };
+      console.error("Memory request failed", new URL(args[0] instanceof Request ? args[0].url : "http://memory/unknown").pathname, detail);
       return Response.json({ error: "Could not complete this request. Please try again." }, { status: 500 });
     }
   };
