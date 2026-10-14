@@ -1,19 +1,21 @@
 "use client";
+import { walletErrorMessage } from "@/lib/wallet-errors";
 import { useEffect, useRef, useState } from "react";
+import WinnerShipping from "./shared-account/WinnerShipping";
 import AuctionProgress from "./auction-progress";
 import type { Address, Hash } from "viem";
 import { formatAmount, MAX_REFUND_FEE, AUCTION_ITEMS } from "@/lib/auction-rules";
 import { api, mobileWalletEnabled, payBid } from "@/lib/client/wallet";
 
 type Quote = { ownerWallet?:Address; id: string; amount: string; fee: string; treasury: Address; previousAmount: string; expiresAt: string };
-type Pending = { id: string; hash: Hash; wallet: Address };
+type Pending = { auctionId?: string; id: string; hash: Hash; wallet: Address };
 import { useWallet } from "./wallet-context";
 import { isAnvil,transactionUrl } from "@/lib/network";
 const storageKey=(wallet:string)=>`memory_pending_payment:${isAnvil()?"anvil":"base"}:${wallet.toLowerCase()}`;
 
 export default function AuctionControls({ productId, title }: { productId: string; title: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const {me,view,refresh:reload,login:connect,logout,readOnly,clockOffset,setWalletLocked}=useWallet();
+  const {me,view,refresh:reload,login:connect,readOnly,clockOffset,setWalletLocked}=useWallet();
   const [amount, setAmount] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
@@ -35,7 +37,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
       if (stored?.wallet.toLowerCase() === me.walletAddress.toLowerCase()) setPending(stored);
       else {
         const saved = view?.bids.find(b => b.paymentHash && !["accepted", "rejected", "failed"].includes(b.status));
-        if (saved?.paymentHash) setPending({ id: saved.id, hash: saved.paymentHash, wallet: me.walletAddress });
+        if (saved?.paymentHash) setPending({ auctionId: saved.auctionId, id: saved.id, hash: saved.paymentHash, wallet: me.walletAddress });
       }
     } catch { localStorage.removeItem(storageKey(me.walletAddress)); }
   }, [me, pending, view, readOnly]);
@@ -47,11 +49,12 @@ export default function AuctionControls({ productId, title }: { productId: strin
         const result = await api<{ status: string }>(`/api/auctions/bids/${pending.id}/confirm`, { hash: pending.hash });
         if (stopped) return;
         if (["accepted", "rejected", "failed"].includes(result.status)) {
-          localStorage.removeItem(storageKey(pending.wallet)); setPending(null); setQuote(null);
-          setMessage(result.status === "accepted" ? "Your bid is confirmed." : result.status === "failed" ? "The transaction failed. Your bid was not accepted. You can request a new quote." : "Your payment arrived after another bid. Your full payment is recorded for return; it has not been accepted as a bid.");
           await reload();
-        } else setMessage("Payment sent. Waiting for Base confirmations. Do not pay again.");
-      } catch (e) { if (!stopped) setError((e as Error).message); }
+          localStorage.removeItem(storageKey(pending.wallet)); setPending(null); setQuote(null); setError("");
+          dialog.current?.close();
+          setMessage(result.status === "accepted" ? "" : result.status === "failed" ? "The transaction failed. Your bid was not accepted. You can request a new quote." : "Your payment arrived after another bid. Your full payment is recorded for return; it has not been accepted as a bid.");
+        }
+      } catch (e) { if (!stopped) setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again.")); }
     };
     check(); const timer = setInterval(check, 6000);
     return () => { stopped = true; clearInterval(timer); };
@@ -68,13 +71,13 @@ export default function AuctionControls({ productId, title }: { productId: strin
   async function login(mobile = false) {
     setBusy(true); setError("");
     try { await connect(mobile); }
-    catch (e) { setError((e as Error).message); }
+    catch (e) { setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again.")); }
     finally { setBusy(false); }
   }
   async function previewBid(event: React.FormEvent) {
     event.preventDefault(); if(readOnly)return; setBusy(true); setError("");
     try { if(!me)throw new Error("Connect your wallet first");const q=await api<Quote>(`/api/auctions/${openProduct.id}/quote`, { amount });setQuote({...q,ownerWallet:me.walletAddress}); }
-    catch (e) { setError((e as Error).message); }
+    catch (e) { setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again.")); }
     finally { setBusy(false); }
   }
   async function pay() {
@@ -84,12 +87,13 @@ export default function AuctionControls({ productId, title }: { productId: strin
     setBusy(true); setError(""); setMessage("Confirm the USDC transfer in your wallet.");
     try {
       const hash = await payBid(me.walletAddress, quote.treasury, quote.amount);
-      const saved = { id: quote.id, hash, wallet: me.walletAddress };
+      const saved = { auctionId: openProduct.id, id: quote.id, hash, wallet: me.walletAddress };
       // Save immediately after broadcast so a reload can resume confirmation.
       setPending(saved);
       try { localStorage.setItem(storageKey(saved.wallet), JSON.stringify(saved)); } catch {}
-      setMessage("Payment sent. Waiting for confirmations. Do not pay again.");
-    } catch (e) { setError((e as Error).message); setMessage(""); }
+      setMessage("");
+      dialog.current?.close();
+    } catch (e) { setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again.")); setMessage(""); }
     finally { setBusy(false); }
   }
   async function cancel() {
@@ -98,7 +102,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
     if (quote && !pending) {
       setBusy(true);
       try { await api(`/api/auctions/bids/${quote.id}`, undefined, "DELETE"); setQuote(null); }
-      catch (e) { setError((e as Error).message); return; }
+      catch (e) { setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again.")); return; }
       finally { setBusy(false); }
     }
     dialog.current?.close();
@@ -106,32 +110,36 @@ export default function AuctionControls({ productId, title }: { productId: strin
   async function updateOpeningMinimum(){
     if(readOnly)return;setBusy(true);setError("");
     try{await api(`/api/admin/auctions/${openProduct.id}`,{action:"set_starting_minimum",amount:openingMinimum});await reload();setMessage("Starting minimum updated.");}
-    catch(e){setError((e as Error).message);}finally{setBusy(false);}
+    catch(e){setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again."));}finally{setBusy(false);}
   }
   async function manageAuction(action: "start_countdown" | "close") {
     if(readOnly)return; setBusy(true); setError("");
     try { await api(`/api/admin/auctions/${openProduct.id}`, { action }); setAdminConfirmation(false); setMessage(action === "close" ? "Auction closed. The current paid bidder is the winner." : "The 24-hour countdown has started."); await reload(); }
-    catch (e) { setError((e as Error).message); }
+    catch (e) { setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again.")); }
     finally { setBusy(false); }
   }
+  const confirming = !!pending && (!pending.auctionId || pending.auctionId === productId);
+  const ownBid = !!me && !!auction?.isYourBid;
   return <>
     <AuctionProgress auction={auction} serverNow={view?.serverNow} />
-    <div className="bid-row">
-      <div className="bid-field"><span>{auction?.currentAmount && auction.currentAmount !== "0" ? "CURRENT BID:" : "STARTING MIN:"}</span>{auction?.currentAmount && auction.currentAmount !== "0" ? <span className="bid-value">{formatAmount(auction.currentAmount)}</span> : <span className="bid-value">{formatAmount(auction?.startingAmount || startingAmount)}</span>}</div>
+    {auction?.status === "closed" ? <div className="closed-auction-result" role="status"><span>WINNING BID:</span><span>{formatAmount(auction.currentAmount)} USDC</span></div> : <div aria-busy={confirming} className={`bid-row ${confirming ? "bid-confirming" : ""} ${ownBid ? "your-current-bid" : ""}`}>
+      <div className="bid-field"><span>{auction?.currentAmount && auction.currentAmount !== "0" ? "CURRENT BID:" : "STARTING MIN:"}</span><span className="bid-value">{confirming ? <span className="bid-confirmation-loader" role="status" aria-label="Confirming your payment" /> : formatAmount(auction?.currentAmount && auction.currentAmount !== "0" ? auction.currentAmount : auction?.startingAmount || startingAmount)}</span></div>
       <div className="bid-field next-bid"><span>NEXT UP:</span><span className="bid-value">{formatAmount(auction?.nextAmount || startingAmount)}</span></div>
-      <button className="bid-button" type="button" onClick={open} disabled={auction?.status === "closed"} aria-label={`Bid on ${title}`}>$</button>
-    </div>
-    {(pending || auction?.busy) && <p className="auction-status" role="status">{pending ? "PAYMENT CONFIRMING — DO NOT PAY AGAIN" : "ANOTHER BID IS SETTLING"}</p>}
+      <button className="bid-button" type="button" onClick={open} disabled={!!pending} aria-label={`Bid on ${title}`}>$</button>
+    </div>}
+    {ownBid && (auction?.status === "closed" ? <div className="your-bid-status winner-actions"><p role="status">YOU WON THIS AUCTION</p><WinnerShipping key={productId} auctionId={productId} title={title} compact /></div> : <p className="your-bid-status" role="status">YOUR BID IS ACTIVE · YOU’RE LEADING</p>)}
+    {!confirming && auction?.busy && <p className="auction-status" role="status">ANOTHER BID IS SETTLING</p>}
+    {error && pending && <p className="bid-error" role="alert">{error}</p>}
     {message && !dialog.current?.open && <p className="auction-feedback" role="status">{message}</p>}
     <dialog ref={dialog} className="bid-dialog" onCancel={e => { e.preventDefault(); void cancel(); }}>
       <div className="bid-dialog-heading"><h2>{openProduct.title}</h2><button type="button" className="dialog-close" disabled={busy} onClick={cancel} aria-label="Close bidding dialog">×</button></div>
-      <p className="dialog-network">{isAnvil()?"ANVIL TEST · MOCK USDC ONLY":"USDC ON BASE ONLY"}</p>
+      <p className="dialog-network">USDC ON BASE ONLY</p>
       {!me ? <div className="wallet-login">
         <p>Connect your wallet and sign the login message. Signing in does not transfer funds.</p>
         <button type="button" disabled={busy} onClick={() => login()}>CONNECT WALLET</button>
         {mobileWalletEnabled() && <button type="button" disabled={busy} onClick={() => login(true)}>MOBILE WALLET / QR</button>}
       </div> : <>
-        <div className="signed-in"><span>{me.walletAddress.slice(0, 6)}…{me.walletAddress.slice(-4)}</span><button disabled={readOnly || busy || !!pending || !!quote} onClick={async () => { try { await logout(); } catch (e) { setError((e as Error).message); } }} type="button">SIGN OUT</button></div>
+        <div className="signed-in"><span>{me.walletAddress.slice(0, 6)}…{me.walletAddress.slice(-4)}</span></div>
         {!view?.ready && <p className="dialog-notice">Auctions are being prepared. Payments are not open yet.</p>}
         {process.env.NODE_ENV === "development" && me.isAdmin && <div className="owner-controls">
           <p>OWNER CONTROLS</p>

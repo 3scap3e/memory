@@ -21,6 +21,15 @@ test('additive migration and payment constraints work in PostgreSQL', async t =>
   });
   await pg.exec(await readFile(new URL('../prisma/migrations/20261014000000_manual_auctions/migration.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../prisma/migrations/20261014010000_manual_refund_tracking/migration.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../prisma/migrations/20261014020000_winner_shipping/migration.sql',import.meta.url),'utf8'));
+  await t.test('shipping has one record per auction and enforces winner references', async () => {
+   const sql=`INSERT INTO "MemoryShipment" (id,"auctionId","winnerBidId","userId",address,"updatedAt") VALUES ($1,'kingston-64','bid-a','a',$2,now())`;
+   await pg.query(sql,['shipment-a',JSON.stringify({name:'Test Recipient',line1:'Test Street',city:'Test City',country:'US'})]);
+   assert.equal((await pg.query('SELECT status FROM "MemoryShipment"')).rows[0].status,'address_received');
+   await assert.rejects(pg.query(sql,['shipment-duplicate','{}']),e=>e.code==='23505');
+   await assert.rejects(pg.query(`INSERT INTO "MemoryShipment" (id,"auctionId","winnerBidId","userId",address,"updatedAt") VALUES ('invalid','missing','missing','missing','{}',now())`),e=>e.code==='23503');
+   await pg.query('DELETE FROM "MemoryShipment"');
+  });
   await t.test('manual migration sets per-item opening prices without changing shared users', async () => {
    const prices=await pg.query(`SELECT id, "openingAmount" FROM "MemoryAuction" ORDER BY id`);
    assert.deepEqual(prices.rows.map(r=>[r.id,String(r.openingAmount)]),[['corsair-128','375000000'],['kingston-64','225000000'],['suprim-4090','1025000000']]);

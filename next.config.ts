@@ -28,7 +28,10 @@ export default function configure(phase: string): NextConfig {
       rmSync(join(process.cwd(), directory), { recursive: true, force: true });
     }
   }
-  const ownerUI = local && existsSync(join(process.cwd(), ".local/owner/ui/refund-queue.tsx")) ? "./.local/owner/ui/refund-queue.tsx" : "./lib/owner-ui/refund-queue.tsx";
+  const ownerAliases = Object.fromEntries(["refund-queue", "shipping-queue"].map(name => {
+    const target = local && existsSync(join(process.cwd(), `.local/owner/ui/${name}.tsx`)) ? `./.local/owner/ui/${name}.tsx` : `./lib/owner-ui/${name}.tsx`;
+    return [`@/owner-ui/${name}`, target];
+  }));
   // Local source is never committed; production has no owner API routes.
   for (const name of ["admin", "test", "cron"]) {
     const source = join(process.cwd(), ".local/owner/api", name);
@@ -39,7 +42,7 @@ export default function configure(phase: string): NextConfig {
     }
   }
   return { ...nextConfig,
-    turbopack: { ...nextConfig.turbopack, resolveAlias: { "@/owner-ui/refund-queue": ownerUI } },
-    webpack(config) { config.resolve.alias["@/owner-ui/refund-queue"] = join(process.cwd(), ownerUI); return config; },
+    turbopack: { ...nextConfig.turbopack, resolveAlias: ownerAliases },
+    webpack(config) { for (const [name, target] of Object.entries(ownerAliases)) config.resolve.alias[name] = join(process.cwd(), target); return config; },
   };
 }

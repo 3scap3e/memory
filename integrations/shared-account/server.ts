@@ -25,10 +25,14 @@ export async function activity(db: Database, identity: Identity) {
   if(account.shared) {
     const id=account.shared.id;
     if(await exists(db,"StageSubmission") && await exists(db,"StageCheckout")) submissions=await db.$queryRaw<unknown[]>`SELECT s."id",s."product",s."description",s."input",s."status",s."createdAt",
-      COALESCE((SELECT json_agg(json_build_object('id',c."id",'rail',c."rail",'mode',c."mode",'tierKey',c."tierKey",'amountCents',c."amountCents",'currency',c."currency",'status',c."status",'createdAt',c."createdAt") ORDER BY c."createdAt" DESC) FROM "StageCheckout" c WHERE c."submissionId"=s."id" AND c."requesterId"=${id}),'[]'::json) AS checkouts
+      COALESCE((SELECT json_agg(json_build_object('id',c."id",'rail',c."rail",'mode',c."mode",'tierKey',c."tierKey",'amountCents',c."amountCents",'currency',c."currency",'status',c."status",'createdAt',c."createdAt",'paidUntil',to_jsonb(c)->'paidUntil','cancelAtPeriodEnd',to_jsonb(c)->'cancelAtPeriodEnd') ORDER BY c."createdAt" DESC) FROM "StageCheckout" c WHERE c."submissionId"=s."id" AND c."requesterId"=${id}),'[]'::json) AS checkouts
       FROM "StageSubmission" s WHERE s."requesterId"=${id} ORDER BY s."createdAt" DESC LIMIT 50`;
     if(await exists(db,"Ask")) bookings=await db.$queryRaw<unknown[]>`SELECT "id","sentenceText","status","offeredAmountCents","agreedAmountCents","createdAt","links" FROM "Ask" WHERE "requesterId"=${id} ORDER BY "createdAt" DESC LIMIT 50`;
     if(await exists(db,"Checkout")) bookingPayments=await db.$queryRaw<unknown[]>`SELECT "id","amountCents","rail","status","createdAt" FROM "Checkout" WHERE "requesterId"=${id} ORDER BY "createdAt" DESC LIMIT 50`;
+  }
+  if(account.shared&&await exists(db,"StageStripePayment")){
+    const payments=await db.$queryRaw<{checkoutId:string;providerId:string;amountCents:number;refundedCents:number;paidAt:Date;invoiceUrl:string|null}[]>`SELECT p."checkoutId",p."providerId",p."amountCents",p."refundedCents",p."paidAt",p."invoiceUrl" FROM "StageStripePayment" p JOIN "StageCheckout" c ON c."id"=p."checkoutId" WHERE c."requesterId"=${account.shared.id} ORDER BY p."paidAt" DESC`;
+    for(const entry of submissions as {checkouts:{id:string;stripePayments?:unknown[]}[]}[])for(const checkout of entry.checkouts)checkout.stripePayments=payments.filter(payment=>payment.checkoutId===checkout.id);
   }
   if(account.memory) bids=await db.$queryRaw<unknown[]>`SELECT b."id",a."title",b."amount"::text AS amount,b."status",b."createdAt",a."status" AS "auctionStatus",(a."currentBidId"=b."id") IS TRUE AS current,(a."pendingBidId"=b."id") IS TRUE AS pending FROM "MemoryBid" b JOIN "MemoryAuction" a ON a."id"=b."auctionId" WHERE b."userId"=${account.memory.id} ORDER BY b."createdAt" DESC LIMIT 50`;
   return {activity:submissions,bookings,bookingPayments,memory:{linked:Boolean(account.memory),bids}};
@@ -46,7 +50,9 @@ export async function eligibility(db: Database, identity: Identity) {
       if(Number(rows[0]?.count??0))reasons.push('Resolve pending Devrel payments first.');
     }
     if(await exists(db,"StageCheckout")) {
-      const rows=await db.$queryRaw<{count:bigint}[]>`SELECT count(*) AS count FROM "StageCheckout" WHERE "requesterId"=${id} AND (lower("status") NOT IN ('cancelled','canceled','expired','failed','awaiting_configuration','paid','completed') OR (lower("mode")='subscription' AND lower("status") NOT IN ('cancelled','canceled','expired','failed','awaiting_configuration')))`;
+      const crypto=await db.$queryRaw<{count:bigint}[]>`SELECT count(*) AS count FROM "StageCheckout" WHERE "requesterId"=${id} AND ("providerSubscriptionId" LIKE 'evm:%' OR left("providerSubscriptionId",4)='sub_')`;
+      if(Number(crypto[0]?.count??0))reasons.push('Delete this account through Parley so subscription permissions can be checked with the payment provider first.');
+      const rows=await db.$queryRaw<{count:bigint}[]>`SELECT count(*) AS count FROM "StageCheckout" WHERE "requesterId"=${id} AND (lower("status") NOT IN ('cancelled','canceled','expired','failed','awaiting_configuration','paid','completed','refunded','partially_refunded') OR (lower("mode")='subscription' AND lower("status") NOT IN ('cancelled','canceled','expired','failed','awaiting_configuration')))`;
       if(Number(rows[0]?.count??0))reasons.push('Cancel recurring subscriptions and resolve pending Parley payments first.');
     }
   }

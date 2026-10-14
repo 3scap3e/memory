@@ -4,7 +4,7 @@
 
 On your ordinary development server, open `http://localhost:3000/preview`.
 
-Choose GUEST, EMPTY, CURRENT, OUTBID, REFUNDED, WINNER, or OWNER. For connected states, click MY BIDS at the top right. This shows the same account-panel components used by real sessions, with clearly labeled fixtures. The owner state also previews the refund queue. Payment and administrative actions are disabled in preview.
+Choose GUEST, EMPTY, CURRENT, OUTBID, REFUNDED, WINNER, or OWNER. For connected states, click ACCOUNT / ACTIVITY → MEMORY at the top right. This shows the same account-panel components used by real sessions, with clearly labeled fixtures. The owner state also previews the refund queue. Payment and administrative actions are disabled in preview.
 
 ## Start a disposable local auction
 
@@ -61,30 +61,30 @@ Disconnect the app before switching participants, then CONNECT WALLET and sign i
 
 Use the 64GB auction:
 
-1. As A, pay **225 mock USDC**. MY BIDS should show CURRENT BID, no received rewards, and no return pending.
+1. As A, pay **225 mock USDC**. ACCOUNT / ACTIVITY → MEMORY should show CURRENT BID, no received rewards, and no return pending.
 2. Disconnect A. Connect B and pay **255 mock USDC**. A is now OUTBID. Its return is **225 principal + 10 reward − 0.01 test fee = 234.99 mock USDC**.
-3. Connect account 0. Open MY BIDS → REFUND QUEUE. Approve SEND REFUND IN WALLET, then verify the transfer. You can instead send the exact amount to the displayed recipient externally and paste the transaction hash. The next bid remains blocked until this return is verified.
-4. As A, check MY BIDS: TOTAL RETURNED **234.99**, REWARDS RECEIVED **9.99**. This is received money, not merely a promised reward.
+3. Connect account 0. Open ACCOUNT / ACTIVITY → MEMORY → OWNER TOOLS → REFUND QUEUE. Click SEND REFUND + REWARD and approve the transfer in your wallet. Confirmation is automatic. The next bid remains blocked until this return is verified.
+4. As A, check ACCOUNT / ACTIVITY → MEMORY: TOTAL RETURNED **234.99**, REWARDS RECEIVED **9.99**. This is received money, not merely a promised reward.
 5. Connect C and pay **315 mock USDC**. Owner returns **255 + 20 − 0.01 = 274.99 mock USDC** to B. B's received reward is **19.99**.
-6. As owner, open the auction's $ dialog and START 24-HOUR COUNTDOWN. By default, a 24-hour period is represented by **60 test seconds**. The app clearly labels this test mode.
-7. Open MY BIDS → OWNER TOOLS → ANVIL: ADVANCE 61 SECONDS. This mines a local block and reconciles the expired auction. With refunds settled, C becomes the winner.
-8. Connect C and inspect MY BIDS: WON and the Kingston item in YOU WON. Stagerunner's recorded auction pool is **285 mock USDC**. Network-fee reserves are separate from that pool.
+6. As owner, open the auction's $ dialog and START 24-HOUR COUNTDOWN. The countdown is a real **24 hours**, just like production. The auction interface does not add a test banner.
+7. Advance Anvil time externally: `cast rpc --rpc-url http://127.0.0.1:8545 evm_increaseTime 86401`, then `cast rpc --rpc-url http://127.0.0.1:8545 evm_mine`. As owner, use CHECK PAYMENTS & CLOCKS. With refunds settled, C becomes the winner.
+8. Connect C and inspect ACCOUNT / ACTIVITY → MEMORY: WON and the Kingston item in YOU WON. Stagerunner's recorded auction pool is **285 mock USDC**. Network-fee reserves are separate from that pool.
 
 You can also manually CLOSE AUCTION from the owner dialog, without starting a countdown. Closing requires a paid current bid and no outstanding returns/in-flight payment window. Fulfillment/delivery of the won item remains manual.
 
 ## Cumulative extension walkthrough
 
-Use a fresh local database. For a less rushed manual test:
+Use a fresh local database. Use the normal 24-hour auction clock:
 
 ```sh
-ANVIL_COUNTDOWN_SECONDS=600 npm run dev:anvil -- --fresh
+npm run dev:anvil -- --fresh
 ```
 
 - A pays 225; owner starts the clock.
-- B pays 255; this first post-start bid establishes baseline **255**, target **2,550**. Verify A's return.
+- The accepted 225 bid at countdown start establishes baseline **225**, target **2,250**. B pays 255; verify A's return.
 - C pays 315; cumulative total is **570**. Verify B's return.
-- A bids again at **1,980**. The cumulative **255 + 315 + 1,980 = 2,550** reaches the target. The existing deadline gains another full test-day period; it is not reset from the current time.
-- The next baseline is **2,550**, so the next cumulative target is **25,500**. Used payments are consumed once. Verify C's **869.99** return.
+- A bids again at **1,680**. The cumulative **255 + 315 + 1,680 = 2,250** reaches the target. The existing deadline gains 24 hours, regardless of when the target is reached.
+- The next baseline is **2,250**, so the next cumulative target is **22,500**. Used payments are consumed once. Verify C's **769.99** return.
 
 ## Automated end-to-end checks
 
@@ -105,3 +105,13 @@ npm run test:anvil -- --extension
 ```
 
 The runner refuses remote RPC/application URLs, a non-31337 chain, a non-test app, or an already-started Kingston auction. It never resets a shared database or the chain.
+
+## Winner delivery and shipping
+
+After closing an auction, the winning wallet opens ACCOUNT / ACTIVITY → MEMORY → YOU WON → ADD DELIVERY DETAILS. Save the recipient name, street, city, country code and other delivery/contact fields. Only the winner and local owner tools can read this address.
+
+The owner opens MEMORY → OWNER TOOLS → SHIPMENTS, refreshes the list, and adds status updates, carrier and tracking number. The winner sees these updates in the same Memory section. Delivery details cannot be changed after tracking is assigned or shipment is underway.
+
+To install new local migrations while preserving your most recent auction, stop the test app, keep Anvil running, and use `npm run dev:anvil -- --resume`. This resumes the saved database (or the most recent fresh session for older launchers). Do not use `--fresh` for this. The launcher records the resumed database path for subsequent restarts.
+
+For production, apply the additive migration using `npm run db:migrate` against the intended database before using shipping. This does not reset auctions or alter Parley/DevRel tables.

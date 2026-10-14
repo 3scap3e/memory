@@ -5,7 +5,8 @@ import { AUCTION_ITEMS, MAX_REFUND_FEE, minimumBid, parseAmount, settlement } fr
 import { db } from "./db";
 import { HttpError } from "./http";
 import { clockNow, confirmationGraceMs, finalQuotePauseMs, quoteDeadlineBufferMs, estimateFee, ready, requirePayments,requireNetwork, treasury, verifyPayment, verifyRefund } from "./chain";
-import { updateClock } from "./closing";
+import { updateClock, initialCountdownBaseline } from "./closing";
+import { DAY_MS } from "../closing-rules";
 const sendJson = (value: unknown) => JSON.parse(JSON.stringify(value, (_, v) => typeof v === "bigint" ? v.toString() : v));
 export async function seedAuctions() {
   for (const item of AUCTION_ITEMS) await db().memoryAuction.upsert({ where: { id: item.id }, update: {}, create: { id: item.id, title: item.title, openingAmount: item.startingAmount } });
@@ -13,9 +14,19 @@ export async function seedAuctions() {
 export async function auctionViews(userId?: string) {
   await seedAuctions();
   const now = await clockNow();
-  const auctions = await db().memoryAuction.findMany();
+  const storedAuctions = await db().memoryAuction.findMany();
+  const auctions = await Promise.all(storedAuctions.map(async a => {
+    if (!a.endsAt || a.status === "closed") return a;
+    const recent = await db().memoryBid.aggregate({
+      where: { auctionId: a.id, status: "accepted", extensionCycle: a.extensions, paidOnChainAt: { gte: new Date(now.getTime() - DAY_MS) } },
+      _sum: { amount: true },
+    });
+    return { ...a, extensionBaseline: await initialCountdownBaseline(db(), a), extensionVolume: recent._sum.amount ?? 0n };
+  }));
+  const ownedLeaders = userId ? await db().memoryBid.findMany({ where: { userId, id: { in: auctions.flatMap(a => a.currentBidId ? [a.currentBidId] : []) } }, select: { id: true } }) : [];
+  const ownIds = new Set(ownedLeaders.map(b => b.id));
   const bids = userId ? await db().memoryBid.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 30 }) : [];
-  return { auctions: sendJson(auctions.map(a => ({ id: a.id, currentAmount: a.currentAmount, startingAmount: a.openingAmount, nextAmount: minimumBid(a.currentAmount, a.openingAmount), poolAmount: a.poolAmount, status: a.status, endsAt: a.endsAt, extensions: a.extensions, extensionBaseline: a.extensionBaseline, extensionVolume: a.extensionVolume, busy: !!a.pendingUntil && a.pendingUntil > now }))), bids: sendJson(bids.map(b => ({ id: b.id, auctionId: b.auctionId, amount: b.amount, status: b.status, paymentHash: b.paymentHash ?? b.submittedHash, expiresAt: b.expiresAt }))), ready: ready(), serverNow: now.getTime(), maxRefundFee: MAX_REFUND_FEE.toString() };
+  return { auctions: sendJson(auctions.map(a => ({ id: a.id, isYourBid: !!a.currentBidId && ownIds.has(a.currentBidId), currentAmount: a.currentAmount, startingAmount: a.openingAmount, nextAmount: minimumBid(a.currentAmount, a.openingAmount), poolAmount: a.poolAmount, status: a.status, endsAt: a.endsAt, extensions: a.extensions, extensionBaseline: a.extensionBaseline, extensionVolume: a.extensionVolume, busy: !!a.pendingUntil && a.pendingUntil > now }))), bids: sendJson(bids.map(b => ({ id: b.id, auctionId: b.auctionId, amount: b.amount, status: b.status, paymentHash: b.paymentHash ?? b.submittedHash, expiresAt: b.expiresAt }))), ready: ready(), serverNow: now.getTime(), maxRefundFee: MAX_REFUND_FEE.toString() };
 }
 export async function createQuote(auctionId: string, userId: string, raw: unknown) {
   await requirePayments();

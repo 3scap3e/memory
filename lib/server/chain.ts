@@ -27,7 +27,7 @@ export async function requireNetwork(){
 export async function clockNow() { return isAnvil() ? new Date(Number((await chain().getBlock()).timestamp) * 1000) : new Date(); }
 export function countdownMs() {
   if (!isAnvil()) return 86400_000;
-  const seconds = Number(env("ANVIL_COUNTDOWN_SECONDS") || "60");
+  const seconds = Number(env("ANVIL_COUNTDOWN_SECONDS") || "86400");
   if (!Number.isInteger(seconds) || seconds < 10 || seconds > 86400) throw new HttpError(503, "Invalid Anvil countdown duration");
   return seconds * 1000;
 }

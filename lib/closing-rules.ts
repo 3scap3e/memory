@@ -3,8 +3,8 @@ export type CustomerCounts = { combined: number; parley: number; run: number; de
 export type ExtensionState = { deadline: number; baseline: bigint; volume: bigint; extended: boolean };
 export function countBid(input: { now: number; deadline: number; baseline: bigint; volume: bigint; amount: bigint; durationMs?: number }): ExtensionState {
   if (input.now >= input.deadline) return { deadline: input.deadline, baseline: input.baseline, volume: input.volume, extended: false };
-  if (input.amount <= 0n || input.volume < 0n || input.baseline < 0n) throw new Error("Invalid extension accounting");
-  const baseline = input.baseline || input.amount;
+  if (input.amount <= 0n || input.volume < 0n || input.baseline <= 0n) throw new Error("Invalid extension accounting");
+  const baseline = input.baseline;
   const volume = input.volume + input.amount;
   const target = baseline * 10n;
   if (volume < target) return { deadline: input.deadline, baseline, volume, extended: false };

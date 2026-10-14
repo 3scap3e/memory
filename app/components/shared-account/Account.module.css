@@ -1,2 +1,37 @@
-
-.modal{position:fixed;inset:0;margin:auto;width:min(660px,calc(100vw - 32px));max-height:calc(100svh - 48px);overflow:auto;border:1px solid #8e9290;border-radius:14px;padding:28px 24px;background:#0e0c13;color:#f2f1ec;font:14px/1.6 var(--font-ocr,monospace);text-transform:none;letter-spacing:normal;overflow-wrap:anywhere}.modal::backdrop{background:#000b}.modal h2{font:24px monospace;margin:0 0 20px}.modal h3{font:inherit;color:#c6ffff;margin:24px 0 12px}.modal p{margin:12px 0}.modal button{border:1px solid #c6ffff;background:transparent;color:#c6ffff;padding:8px 12px;border-radius:5px;font:inherit;cursor:pointer}.modal button:disabled{opacity:.4;cursor:default}.modal .close{display:flex;align-items:center;justify-content:center;width:32px;height:32px;margin:-10px -5px 12px auto;border:0;font-size:24px;padding:0}.field{display:grid;gap:8px;margin:18px 0}.field input{width:100%;background:#000;color:#fff;border:1px solid #737777;padding:10px;font:inherit}.paymentNote{margin:16px 0}.activityEntry{margin:12px 0;border:1px solid #737777;border-radius:8px;padding:12px}.activityEntry summary{cursor:pointer;color:#c6ffff}.activityFields div{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px;margin:8px 0}.activityFields dt{color:#c6ffff}.activityFields dd{margin:0}.activityPayment{border-top:1px solid #393140;margin-top:12px;padding-top:8px}.deleteAccount{margin-top:28px;padding-top:18px;border-top:1px solid #737777}.deleteAccount p{margin:14px 0}.deleteAccount button{border-color:#ff8e8e;color:#ffb6b6}.modal a{color:#c6ffff;text-decoration:underline}.dock{position:fixed;top:12px;right:16px;z-index:100;display:flex;gap:8px;align-items:center;padding:8px;background:#000d;border:1px solid #777;border-radius:8px;font:12px monospace;color:#c6ffff}.dock button{background:#000;border:1px solid #777;color:#c6ffff;padding:7px 10px;border-radius:5px;cursor:pointer}.dock span{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal{position:fixed;inset:0;margin:auto;width:min(660px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;border:1px solid #2847ff;border-radius:14px;padding:24px;background:#000;color:#eee;font:14px/1.7 "OCR",monospace;letter-spacing:normal;overflow-wrap:anywhere;scrollbar-width:none}
+.modal::backdrop{background:rgb(0 0 0 / 85%)}
+.modal h2{font:17px/1.6 "OCR",monospace;margin:0 56px 20px 0}
+.modal h3{font:inherit;color:#eee;margin:24px 0 12px}
+.modal p{margin:12px 0}
+.modal button{min-height:44px;border:1px solid #2847ff;background:#030824;color:#eee;padding:10px 12px;border-radius:6px;font:inherit;cursor:pointer}
+.modal button:disabled{opacity:.4;cursor:default}
+.modal button:focus-visible,.modal summary:focus-visible{outline:2px solid #eee;outline-offset:4px}
+.modal .close{position:absolute;top:24px;right:24px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #555;border-radius:0;background:none;font-size:28px;padding:0}
+.field{display:grid;gap:8px;margin:18px 0}
+.field input{width:100%;min-width:0;background:#080808;color:#fff;border:1px solid #888;padding:10px;font:inherit}
+.paymentNote{color:#aaa;font-size:12px;margin:16px 0}
+.activitySection{margin:16px 0;border:1px solid #2847ff;border-radius:8px;padding:14px}
+.activityEntry{margin:12px 0;border:1px solid #444;border-radius:4px;padding:12px}
+.activityPayment{border-top:1px solid #444;margin-top:12px;padding-top:12px}
+.modal summary{position:relative;list-style:none;cursor:pointer;color:#eee;padding-right:28px;min-height:24px}
+.modal summary::-webkit-details-marker{display:none}
+.modal summary::marker{content:""}
+.modal summary::after{content:"";position:absolute;right:4px;top:5px;width:9px;height:9px;border-right:2px solid #2847ff;border-bottom:2px solid #2847ff;transform:rotate(45deg)}
+.modal details[open]>summary::after{top:10px;transform:rotate(225deg)}
+.activityFields div{display:grid;grid-template-columns:90px minmax(0,1fr);gap:12px;margin:8px 0}
+.activityFields dt{color:#aaa}
+.activityFields dd{margin:0;min-width:0}
+.deleteAccount{margin-top:14px}
+.accountActions{display:flex;flex-wrap:wrap;gap:8px}
+.deleteAccount p{margin:14px 0}
+.deleteAccount button{border-color:#555;background:#000}
+.modal a{color:#eee;text-decoration:underline}
+.dock{position:fixed;top:12px;right:16px;z-index:100;display:flex;gap:8px;align-items:center;padding:8px;background:#000;border:1px solid #2847ff;border-radius:8px;font:12px "OCR",monospace;color:#eee}
+.dock button{background:#030824;border:1px solid #2847ff;color:#eee;padding:7px 10px;border-radius:5px;font:inherit;cursor:pointer}
+.dock span{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:480px){.modal{padding:18px;font-size:12px}.modal .close{top:18px;right:18px}.activitySection{padding:12px}.activityEntry{padding:10px}.activityFields div{grid-template-columns:minmax(0,1fr);gap:2px}}
+.addressGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+.field select,.field textarea{width:100%;min-width:0;min-height:44px;border:1px solid #888;border-radius:0;background-color:#080808;color:#eee;font:inherit;padding:10px}
+.field select{padding-right:38px}
+.field textarea{min-height:100px;resize:vertical}
+@media(max-width:480px){.addressGrid{grid-template-columns:minmax(0,1fr)}}

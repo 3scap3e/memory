@@ -11,6 +11,7 @@ model MemoryUser {
   id            String @id @default(cuid())
   walletAddress String @unique
   createdAt     DateTime @default(now())
+  shipments     MemoryShipment[]
   sessions      MemorySession[]
   bids          MemoryBid[]
 }
@@ -54,6 +55,7 @@ model MemoryAuction {
   rewardAmount BigInt @default(0)
   feeReserve BigInt @default(0)
   bids MemoryBid[]
+  shipment MemoryShipment?
   actions MemoryAuctionAction[]
   updatedAt DateTime @updatedAt
 }
@@ -76,6 +78,7 @@ model MemoryBid {
   extensionCycle Int?
   auction MemoryAuction @relation(fields: [auctionId], references: [id])
   user MemoryUser @relation(fields: [userId], references: [id])
+  shipment MemoryShipment?
   payout MemoryPayout?
   @@index([auctionId, status])
   @@index([userId, createdAt])
@@ -114,4 +117,22 @@ model MemoryAuctionAction {
   createdAt DateTime @default(now())
   auction MemoryAuction @relation(fields: [auctionId], references: [id])
   @@index([auctionId, createdAt])
+}
+
+model MemoryShipment {
+  id String @id @default(cuid())
+  auctionId String @unique
+  winnerBidId String @unique
+  userId String
+  address Json
+  status String @default("address_received")
+  carrier String?
+  trackingNumber String?
+  updates Json @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  auction MemoryAuction @relation(fields: [auctionId], references: [id])
+  winner MemoryUser @relation(fields: [userId], references: [id])
+  bid MemoryBid @relation(fields: [winnerBidId], references: [id])
+  @@index([userId])
 }

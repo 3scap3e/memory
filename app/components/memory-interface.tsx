@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { useWallet } from "./wallet-context";
+import PublicBidHistory from "./public-bid-history";
 import AuctionTldr from "./auction-tldr";
 import AuctionControls from "./auction-controls";
 import { AUCTION_ITEMS } from "@/lib/auction-rules";
@@ -13,6 +15,8 @@ const products = [
 ];
 
 export default function MemoryInterface() {
+  const { me, view } = useWallet();
+  const ownBid = (index: number) => !!me && !!view?.auctions.find(a => a.id === AUCTION_ITEMS[index].id)?.isYourBid;
   const [activeTab, setActiveTab] = useState(0);
   const [featuredProduct, setFeaturedProduct] = useState(0);
 
@@ -41,10 +45,10 @@ export default function MemoryInterface() {
             </div>
           </header>
 
-          <section className="auction-panel" aria-label="Hardware auction preview">
+          <section className={`auction-panel ${ownBid(featuredProduct) ? "auction-panel-leading" : ""}`} aria-label="Hardware auction preview">
             <div className="product-tabs" aria-label="Choose hardware">
               {products.map((product, index) => (
-                <button key={product.label} type="button" className={`product-tab ${activeTab === index ? "is-active" : ""}`} aria-pressed={activeTab === index} onClick={() => selectProduct(index)}>{product.label}</button>
+                <button key={product.label} type="button" className={`product-tab ${activeTab === index ? "is-active" : ""} ${ownBid(index) ? "your-leading-tab" : ""}`} aria-pressed={activeTab === index} onClick={() => selectProduct(index)}>{product.label}</button>
               ))}
             </div>
             <div className="auction-story">
@@ -63,6 +67,7 @@ export default function MemoryInterface() {
               </div>
             </div>
             <AuctionControls productId={AUCTION_ITEMS[featuredProduct].id} title={products[featuredProduct].label} />
+            <PublicBidHistory key={AUCTION_ITEMS[featuredProduct].id} productId={AUCTION_ITEMS[featuredProduct].id} currentAmount={view?.auctions.find(a => a.id === AUCTION_ITEMS[featuredProduct].id)?.currentAmount} />
           </section>
 
           <aside className="open-mechanics">
