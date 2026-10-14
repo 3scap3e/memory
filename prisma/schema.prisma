@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MemoryUser {
+  id            String @id @default(cuid())
+  walletAddress String @unique
+  createdAt     DateTime @default(now())
+  sessions      MemorySession[]
+  bids          MemoryBid[]
+}
+
+model MemorySession {
+  tokenHash String @id
+  userId String
+  expiresAt DateTime
+  user MemoryUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model MemoryNonce {
+  id String @id @default(cuid())
+  address String
+  message String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([address, createdAt])
+}
+
+model MemoryAuction {
+  id String @id
+  title String
+  status String @default("open")
+  version Int @default(0)
+  currentBidId String?
+  pendingBidId String?
+  pendingUntil DateTime?
+  currentAmount BigInt @default(0)
+  countdownStartedAt DateTime?
+  endsAt DateTime?
+  closedAt DateTime?
+  winningBidId String?
+  extensions Int @default(0)
+  extensionBaseline BigInt @default(0)
+  extensionVolume BigInt @default(0)
+  extensionWindowStartedAt DateTime?
+  openingAmount BigInt @default(1)
+  poolAmount BigInt @default(0)
+  rewardAmount BigInt @default(0)
+  feeReserve BigInt @default(0)
+  bids MemoryBid[]
+  actions MemoryAuctionAction[]
+  updatedAt DateTime @updatedAt
+}
+
+model MemoryBid {
+  id String @id @default(cuid())
+  auctionId String
+  userId String
+  amount BigInt
+  previousBidId String?
+  expectedVersion Int
+  feeCap BigInt
+  status String @default("quoted")
+  submittedHash String?
+  paymentHash String? @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  acceptedAt DateTime?
+  paidOnChainAt DateTime?
+  extensionCycle Int?
+  auction MemoryAuction @relation(fields: [auctionId], references: [id])
+  user MemoryUser @relation(fields: [userId], references: [id])
+  payout MemoryPayout?
+  @@index([auctionId, status])
+  @@index([userId, createdAt])
+}
+
+model MemoryPayout {
+  id String @id @default(cuid())
+  triggeringBidId String @unique
+  auctionId String
+  recipient String
+  principal BigInt
+  reward BigInt
+  fee BigInt
+  amount BigInt
+  status String @default("pending")
+  reason String
+  submittedRefundHash String?
+  txHash String? @unique
+  nonce Int? @unique
+  signedTransaction String?
+  gasCostWei String?
+  lastError String?
+  createdAt DateTime @default(now())
+  paidAt DateTime?
+  triggeringBid MemoryBid @relation(fields: [triggeringBidId], references: [id])
+  @@index([status, createdAt])
+}
+
+model MemoryAuctionAction {
+  id String @id @default(cuid())
+  auctionId String
+  actor String
+  action String
+  previousDeadline DateTime?
+  newDeadline DateTime?
+  createdAt DateTime @default(now())
+  auction MemoryAuction @relation(fields: [auctionId], references: [id])
+  @@index([auctionId, createdAt])
+}
