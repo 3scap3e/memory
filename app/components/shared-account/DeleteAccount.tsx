@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { stageApi } from "./api";
-import styles from "./Account.module.css";
+import styles from "./Account.styles";
 
 type Eligibility = { allowed: boolean; reasons: string[]; memoryLinked: boolean };
 export default function DeleteAccount({ onDeleted, onLogout, logoutDisabled }: { onDeleted: () => void; onLogout?: () => void; logoutDisabled?: boolean }) {

@@ -7,7 +7,7 @@ import { api } from "@/lib/client/wallet";
 import WinnerShipping from "./WinnerShipping";
 import ShippingQueue from "@/owner-ui/shipping-queue";
 import RefundQueue from "@/owner-ui/refund-queue";
-import styles from "./Account.module.css";
+import styles from "./Account.styles";
 const labels={current:"CURRENT BID",won:"WON",outbid:"OUTBID",payment_pending:"PAYMENT PENDING",not_accepted:"NOT ACCEPTED",cancelled:"CANCELLED"};
 export default function MemoryActivity(){
  const {me,activity,readOnly,refresh}=useWallet();

@@ -4,7 +4,7 @@ import { api } from "@/lib/client/wallet";
 import { useWallet } from "../wallet-context";
 import type { ShippingAddress } from "@/lib/shipping-rules";
 import { shippingLabel,type Shipment } from "@/lib/shipping-types";
-import styles from "./Account.module.css";
+import styles from "./Account.styles";
 const empty:ShippingAddress={name:"",line1:"",line2:"",city:"",region:"",postalCode:"",country:"",phone:"",email:""};
 const fields:[keyof ShippingAddress,string,string][]=[["name","FULL NAME","name"],["line1","STREET ADDRESS","address-line1"],["line2","APARTMENT / UNIT (OPTIONAL)","address-line2"],["city","CITY","address-level2"],["region","STATE / REGION","address-level1"],["postalCode","POSTAL CODE","postal-code"],["country","COUNTRY CODE (US, GB…)","country"],["phone","PHONE (OPTIONAL)","tel"],["email","CONTACT EMAIL (OPTIONAL)","email"]];
 export default function WinnerShipping({auctionId,title,compact=false}:{auctionId:string;title:string;compact?:boolean}){

@@ -294,3 +294,42 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button { -webkit-app
 .winner-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
 .winner-delivery-compact > button { min-height: 44px; padding: 6px 10px; border: 1px solid #6ab98b; border-radius: 4px; background: #071a0e; color: #a4dcbb; font: 11px "OCR", monospace; cursor: pointer; }
 @media(max-width:360px) { .public-bid-amount { text-align: left; } }
+
+/* Account panels share fixed class names across server and browser builds. */
+.memory-account-modal{position:fixed;inset:0;margin:auto;width:min(660px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;border:1px solid #2847ff;border-radius:14px;padding:24px;background:#000;color:#eee;font:14px/1.7 "OCR",monospace;letter-spacing:normal;overflow-wrap:anywhere;scrollbar-width:none}
+.memory-account-modal::backdrop{background:rgb(0 0 0 / 85%)}
+.memory-account-modal h2{font:17px/1.6 "OCR",monospace;margin:0 56px 20px 0}
+.memory-account-modal h3{font:inherit;color:#eee;margin:24px 0 12px}
+.memory-account-modal p{margin:12px 0}
+.memory-account-modal button{min-height:44px;border:1px solid #2847ff;background:#030824;color:#eee;padding:10px 12px;border-radius:6px;font:inherit;cursor:pointer}
+.memory-account-modal button:disabled{opacity:.4;cursor:default}
+.memory-account-modal button:focus-visible,.memory-account-modal summary:focus-visible{outline:2px solid #eee;outline-offset:4px}
+.memory-account-modal .memory-account-close{position:absolute;top:24px;right:24px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #555;border-radius:0;background:none;font-size:28px;padding:0}
+.memory-account-field{display:grid;gap:8px;margin:18px 0}
+.memory-account-field input{width:100%;min-width:0;background:#080808;color:#fff;border:1px solid #888;padding:10px;font:inherit}
+.memory-account-payment-note{color:#aaa;font-size:12px;margin:16px 0}
+.memory-account-activity-section{margin:16px 0;border:1px solid #2847ff;border-radius:8px;padding:14px}
+.memory-account-activity-entry{margin:12px 0;border:1px solid #444;border-radius:4px;padding:12px}
+.memory-account-activity-payment{border-top:1px solid #444;margin-top:12px;padding-top:12px}
+.memory-account-modal summary{position:relative;list-style:none;cursor:pointer;color:#eee;padding-right:28px;min-height:24px}
+.memory-account-modal summary::-webkit-details-marker{display:none}
+.memory-account-modal summary::marker{content:""}
+.memory-account-modal summary::after{content:"";position:absolute;right:4px;top:5px;width:9px;height:9px;border-right:2px solid #2847ff;border-bottom:2px solid #2847ff;transform:rotate(45deg)}
+.memory-account-modal details[open]>summary::after{top:10px;transform:rotate(225deg)}
+.memory-account-activity-fields div{display:grid;grid-template-columns:90px minmax(0,1fr);gap:12px;margin:8px 0}
+.memory-account-activity-fields dt{color:#aaa}
+.memory-account-activity-fields dd{margin:0;min-width:0}
+.memory-account-delete-account{margin-top:14px}
+.memory-account-account-actions{display:flex;flex-wrap:wrap;gap:8px}
+.memory-account-delete-account p{margin:14px 0}
+.memory-account-delete-account button{border-color:#555;background:#000}
+.memory-account-modal a{color:#eee;text-decoration:underline}
+.memory-account-dock{position:fixed;top:12px;right:16px;z-index:100;display:flex;gap:8px;align-items:center;padding:8px;background:#000;border:1px solid #2847ff;border-radius:8px;font:12px "OCR",monospace;color:#eee}
+.memory-account-dock button{background:#030824;border:1px solid #2847ff;color:#eee;padding:7px 10px;border-radius:5px;font:inherit;cursor:pointer}
+.memory-account-dock span{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:480px){.memory-account-modal{padding:18px;font-size:12px}.memory-account-modal .memory-account-close{top:18px;right:18px}.memory-account-activity-section{padding:12px}.memory-account-activity-entry{padding:10px}.memory-account-activity-fields div{grid-template-columns:minmax(0,1fr);gap:2px}}
+.memory-account-address-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+.memory-account-field select,.memory-account-field textarea{width:100%;min-width:0;min-height:44px;border:1px solid #888;border-radius:0;background-color:#080808;color:#eee;font:inherit;padding:10px}
+.memory-account-field select{padding-right:38px}
+.memory-account-field textarea{min-height:100px;resize:vertical}
+@media(max-width:480px){.memory-account-address-grid{grid-template-columns:minmax(0,1fr)}}

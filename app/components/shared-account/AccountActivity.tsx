@@ -4,7 +4,7 @@ import { stageApi } from "./api";
 import MemoryActivity from "./MemoryActivity";
 import { useWallet } from "../wallet-context";
 import DeleteAccount from "./DeleteAccount";
-import styles from "./Account.module.css";
+import styles from "./Account.styles";
 
 type Payment = { stripePayments?:{providerId:string;amountCents:number;refundedCents:number;paidAt:string;invoiceUrl:string|null}[]; id: string; rail: string; mode: string; tierKey: string | null; amountCents: number | null; currency: string; status: string; createdAt: string };
 type Entry = { id: string; product: string; description: string; status: string; createdAt: string; input: Record<string, unknown>; checkouts: Payment[] };
