@@ -42,7 +42,7 @@ export default function AccountActivity({ open, onClose, onDeleted, onLogout, lo
     return () => { active = false; };
   }, [open,refresh,readOnly,refreshWallet]);
   const activeSubscriptions = entries.flatMap(entry => entry.checkouts.filter(payment => payment.mode.toLowerCase() === "subscription" && payment.status === "ACTIVE").map(payment => ({ entry,payment })));
-  return <dialog ref={dialog} className={`${styles.modal} ${styles.activityModal}`} aria-labelledby="account-activity-title" onClose={onClose} onCancel={onClose}>
+  return <dialog ref={dialog} className={styles.modal} aria-labelledby="account-activity-title" onClose={onClose} onCancel={onClose}>
     <button type="button" className={styles.close} aria-label="Close activity" onClick={onClose}>×</button>
     <h2 id="account-activity-title">ACCOUNT / ACTIVITY</h2>
     <button type="button" disabled={loading} onClick={() => setRefresh(value => value+1)}>REFRESH HISTORY</button>
