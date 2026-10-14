@@ -8,8 +8,8 @@ import { HttpError, origin, env } from "./http";
 import { auctionNetwork,isAnvil } from "../network";
 import { chain } from "./chain";
 import { isAdminWallet } from "../admin-rules";
-export const isAdmin = (address: string) => isAdminWallet(address, env("AUCTION_ADMIN_WALLETS"));
-export async function requireAdmin() { const user = await requireUser(); if (!isAdmin(user.walletAddress)) throw new HttpError(403, "Auction owner access required"); return user; }
+export const isAdmin = (address: string) => process.env.NODE_ENV === "development" && isAdminWallet(address, env("AUCTION_ADMIN_WALLETS"));
+export async function requireAdmin() { if(process.env.NODE_ENV !== "development")throw new HttpError(404,"Not found");const user = await requireUser(); if (!isAdmin(user.walletAddress)) throw new HttpError(403, "Auction owner access required"); return user; }
 const COOKIE = isAnvil()?"memory_anvil_session":"memory_session";
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
 export async function nonce(request: Request, raw: unknown) {

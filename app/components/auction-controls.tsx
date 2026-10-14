@@ -133,7 +133,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
       </div> : <>
         <div className="signed-in"><span>{me.walletAddress.slice(0, 6)}…{me.walletAddress.slice(-4)}</span><button disabled={readOnly || busy || !!pending || !!quote} onClick={async () => { try { await logout(); } catch (e) { setError((e as Error).message); } }} type="button">SIGN OUT</button></div>
         {!view?.ready && <p className="dialog-notice">Auctions are being prepared. Payments are not open yet.</p>}
-        {me.isAdmin && <div className="owner-controls">
+        {process.env.NODE_ENV === "development" && me.isAdmin && <div className="owner-controls">
           <p>OWNER CONTROLS</p>
           {(!auction?.currentAmount||auction.currentAmount==="0")&&<div><label htmlFor="opening-minimum">STARTING MINIMUM (USDC)</label><input id="opening-minimum" type="text" inputMode="decimal" value={openingMinimum} onChange={e=>setOpeningMinimum(e.target.value)} disabled={readOnly||busy}/><button type="button" disabled={readOnly||busy||!!quote||!!pending} onClick={updateOpeningMinimum}>UPDATE STARTING MINIMUM</button></div>}
           <button type="button" disabled={readOnly || busy || !!pending || !!quote || !!auction?.endsAt || !auction?.currentAmount || auction.currentAmount === "0" || auction.status === "closed"} onClick={() => manageAuction("start_countdown")}>START 24-HOUR COUNTDOWN</button>

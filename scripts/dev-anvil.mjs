@@ -19,7 +19,7 @@ const env={...process.env,DATABASE_URL:`postgresql://postgres:postgres@127.0.0.1
 // Test-only connection details; no keys and no shared database configuration.
 await writeRuntime();
 async function writeRuntime(){const {writeFile}=await import('node:fs/promises');await writeFile('.anvil/runtime.json',JSON.stringify({appUrl:env.APP_URL,countdownSeconds:Number(env.ANVIL_COUNTDOWN_SECONDS),...config},null,2)+'\n');}
-const child=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--webpack','--port',String(appPort)],{env,stdio:'inherit'});
+const child=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--webpack','--port',String(appPort)],{env,stdio:'inherit'});
 console.log(`ISOLATED ANVIL TEST: ${env.APP_URL} — mock USDC only. The 24-hour clock lasts ${env.ANVIL_COUNTDOWN_SECONDS} seconds.`);
 let stopping=false;async function stop(){if(stopping)return;stopping=true;child.kill('SIGTERM');await server.stop();await db.close();}
 process.on('SIGINT',()=>stop().then(()=>process.exit(0)));process.on('SIGTERM',()=>stop().then(()=>process.exit(0)));child.on('exit',()=>stop().then(()=>process.exit(0)));

@@ -17,7 +17,7 @@
 
 Copy the names from `.env.example` into your environment. Point `DATABASE_URL` at the same PostgreSQL database used by Parley/Run/Dev; no database URL is present in any of the three checked project environments yet. The migration adds only `Memory*` tables and does not alter existing application tables. Run `npm run db:migrate`; never run reset/db push on the shared database.
 
-Set `AUCTION_ADMIN_WALLETS` to the owner's wallet address (or a comma-separated allowlist). Log in with that wallet, open the bidding dialog, and use OWNER CONTROLS to start the countdown or close the auction. A paid current bid is required. Manual closing waits for in-flight payments and outstanding refunds; it records the current paid bidder as the winner. Starting a countdown again cannot reset an existing clock. Owner actions are recorded in `MemoryAuctionAction`.
+Owner tools are local-only: their source lives in ignored `.local/owner/`, and `npm run dev` loads their API routes. Production builds remove those routes and deny administrative access, even if an owner allowlist is accidentally configured. Keep a private backup of `.local/owner/`; a fresh Git clone does not contain it. Set `AUCTION_ADMIN_WALLETS` in your ignored `.env.local` to the owner's wallet address (or a comma-separated allowlist). Log in with that wallet, open the bidding dialog, and use OWNER CONTROLS to start the countdown or close the auction. A paid current bid is required. Manual closing waits for in-flight payments and outstanding refunds; it records the current paid bidder as the winner. Starting a countdown again cannot reset an existing clock. Owner actions are recorded in `MemoryAuctionAction`.
 
 The owner assesses the discovery conditions manually, including replayers on Parley Dev and Parley Run. The auction no longer queries customer totals or requires a closing-target JSON configuration to accept bids. The shared database can still be used for the other apps without modifying their tables.
 
@@ -27,7 +27,7 @@ The owner can edit a starting minimum from the auction dialog before its first a
 
 Configure WalletConnect's public project ID for mobile/QR login. Injected wallets and wallet-browser login work without it. The session cookie is HttpOnly, its database token is hashed, and SIWE nonce consumption is atomic.
 
-The owner can use MY BIDS → CHECK PAYMENTS & CLOCKS to reconcile submitted bid/refund transactions and close expired countdowns. Optionally schedule authenticated POSTs to `/api/cron/settle` with `Authorization: Bearer <CRON_SECRET>` to do the same automatically. This worker never signs or broadcasts a transfer. Without a scheduler, an expired auction finalizes when the owner runs the check; new bidding is already paused at its deadline.
+The owner can use MY BIDS → CHECK PAYMENTS & CLOCKS to reconcile submitted bid/refund transactions and close expired countdowns. Run this from the local owner session connected to the production database and Base RPC. No live scheduler or `CRON_SECRET` is needed. An expired auction finalizes when the owner runs the local check; new bidding is already paused at its deadline.
 
 Only set `AUCTIONS_ENABLED=true` after the database, owner wallet allowlist, treasury, mobile wallet configuration, and a manual/scheduled reconciliation plan are ready. Bids stop being quoted in the final 90 seconds to leave room for confirmation; in-flight quote reservations include an additional confirmation window.
 

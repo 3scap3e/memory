@@ -47,3 +47,11 @@ tests/anvil/out/
 tests/anvil/cache/
 
 .next-anvil/
+/.netlify/
+
+# Owner tools stay on this machine. Routes are generated only for next dev.
+/.local/
+/app/api/admin/
+/app/api/test/
+/app/api/cron/
+/app/components/refund-queue.tsx

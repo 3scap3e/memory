@@ -25,6 +25,10 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@/owner-ui/*": [
+        "./.local/owner/ui/*",
+        "./lib/owner-ui/*"
       ]
     },
     "allowImportingTsExtensions": true
