@@ -8,6 +8,326 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  walletAddress String?   @unique
+  name          String?
+  createdAt     DateTime  @default(now())
+  sessions      Session[]
+  asks          Ask[]
+  checkouts     Checkout[]
+  stageSubmissions StageSubmission[]
+  stageCheckouts StageCheckout[]
+  stripeCustomers StageStripeCustomer[]
+}
+
+model Checkout {
+  id                      String         @id @default(cuid())
+  requesterId             String
+  input                   Json
+  rail                    String
+  amountCents             Int
+  status                  String
+  stripeCheckoutSessionId String?        @unique
+  stripePaymentIntentId   String?        @unique
+  askId                   String?        @unique
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  requester               User           @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  files                   CheckoutFile[]
+  quotes                  CryptoQuote[]
+
+  @@index([requesterId])
+  @@index([status])
+}
+
+model CheckoutFile {
+  id         String   @id @default(cuid())
+  checkoutId String
+  filename   String
+  mime       String
+  size       Int
+  data       Bytes
+  createdAt  DateTime @default(now())
+  checkout   Checkout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@index([checkoutId])
+}
+
+model WalletNonce {
+  address   String   @id
+  message   String
+  expiresAt DateTime
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model LoginCode {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+}
+
+model Ask {
+  id                 String       @id @default(cuid())
+  requesterId        String
+  sentence           Json
+  sentenceText       String
+  involvement        String
+  timingKind         String
+  timingDate         DateTime?
+  basePriceCents     Int
+  offeredAmountCents Int
+  agreedAmountCents  Int?
+  rail               String
+  status             String
+  payerName          String?
+  payerEmail         String?
+  payerOrg           String?
+  links              String[]
+  nonRefundableAt    DateTime
+  liveAt             DateTime?
+  expiresAt          DateTime?
+  closedAt           DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  requester          User         @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  terms              AskTerms[]
+  payments           Payment[]
+  attachments        Attachment[]
+  events             AskEvent[]
+  engagement         Engagement?
+
+  @@index([requesterId])
+  @@index([status])
+}
+
+model AskTerms {
+  id          String    @id @default(cuid())
+  askId       String
+  seq         Int
+  kind        String
+  by          String
+  involvement String
+  timingKind  String
+  timingDate  DateTime?
+  amountCents Int
+  status      String
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+  ask         Ask       @relation(fields: [askId], references: [id], onDelete: Cascade)
+
+  @@unique([askId, seq])
+}
+
+model Payment {
+  id                      String        @id @default(cuid())
+  askId                   String
+  termsId                 String?
+  rail                    String
+  purpose                 String
+  amountCents             Int
+  status                  String
+  stripeCheckoutSessionId String?       @unique
+  stripePaymentIntentId   String?       @unique
+  paidAt                  DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  ask                     Ask           @relation(fields: [askId], references: [id], onDelete: Cascade)
+  quotes                  CryptoQuote[]
+
+  @@index([askId])
+}
+
+model CryptoQuote {
+  id           String    @id @default(cuid())
+  paymentId    String?
+  checkoutId   String?
+  asset        String
+  chain        String
+  units        String
+  decimals     Int
+  usdCents     Int
+  usdRate      String?
+  address      String
+  payerAddress String?
+  txHash       String?   @unique
+  status       String
+  expiresAt    DateTime
+  confirmedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  payment      Payment?  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  checkout     Checkout? @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([checkoutId])
+  @@index([status])
+}
+
+model Engagement {
+  id          String    @id @default(cuid())
+  askId       String    @unique
+  involvement String
+  amountCents Int
+  status      String
+  startAt     DateTime?
+  endAt       DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  ask         Ask       @relation(fields: [askId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  askId     String
+  filename  String
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+  ask       Ask      @relation(fields: [askId], references: [id], onDelete: Cascade)
+
+  @@index([askId])
+}
+
+model AskEvent {
+  id        String   @id @default(cuid())
+  askId     String
+  kind      String
+  actor     String
+  data      Json?
+  createdAt DateTime @default(now())
+  ask       Ask      @relation(fields: [askId], references: [id], onDelete: Cascade)
+
+  @@index([askId])
+}
+
+// Stagerunner adds its own records; existing devrel booking models stay intact.
+model StageSubmission {
+  id          String   @id @default(cuid())
+  requesterId String
+  product     String
+  input       Json
+  description String
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  requester   User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  checkouts   StageCheckout[]
+
+  @@index([requesterId, product])
+  @@index([status])
+}
+
+model StageCheckout {
+  id                  String   @id @default(cuid())
+  requesterId         String
+  submissionId        String
+  rail                String
+  mode                String
+  tierKey             String?
+  amountCents         Int?
+  currency            String   @default("usd")
+  status              String   @default("AWAITING_CONFIGURATION")
+  providerSessionId   String?  @unique
+  providerPaymentId   String?  @unique
+  providerSubscriptionId String? @unique
+  transactionHash     String?  @unique
+  stripeAccountId     String?
+  requestKey          String? @unique
+  stripePayments      StageStripePayment[]
+  chainId             Int?
+  contractAddress     String?
+  payerWallet         String?
+  planId              Int?
+  generation          String?
+  paidUntil           DateTime?
+  remainingPayments   Int?
+  cancelAtPeriodEnd   Boolean @default(false)
+  cryptoPayments      StageCryptoPayment[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  requester           User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  submission          StageSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([requesterId])
+  @@index([submissionId])
+  @@index([status])
+}
+
+// Retained for migration compatibility; manual skill files no longer use this table.
+model StageSkillPublication {
+  id          String   @id
+  revision    String
+  status      String
+  content     String
+  attemptIds  Json
+  updatedAt   DateTime @updatedAt
+}
+
+model StageCryptoPayment {
+  id              String @id @default(cuid())
+  checkoutId      String
+  transactionHash String
+  logIndex        Int
+  amountUnits     BigInt
+  blockNumber     BigInt
+  paidUntil       DateTime
+  createdAt       DateTime @default(now())
+  checkout        StageCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  @@unique([transactionHash, logIndex])
+  @@index([checkoutId])
+}
+
+model StageStripeCustomer {
+  id               String @id @default(cuid())
+  requesterId      String
+  stripeAccountId  String
+  stripeCustomerId String @unique
+  createdAt        DateTime @default(now())
+  requester        User @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  @@unique([requesterId, stripeAccountId])
+}
+
+model StageStripePayment {
+  id                String @id @default(cuid())
+  checkoutId        String
+  stripeAccountId   String
+  providerId        String
+  amountCents       Int
+  refundedCents     Int @default(0)
+  currency          String
+  paidAt            DateTime
+  invoiceUrl        String?
+  createdAt         DateTime @default(now())
+  checkout          StageCheckout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  @@unique([stripeAccountId, providerId])
+  @@index([checkoutId])
+}
+
+model StageStripeEvent {
+  id              String @id
+  type            String
+  stripeAccountId String
+  createdAt       DateTime @default(now())
+}
+
+// Memory auctions share this database with Parley and DevRel.
 model MemoryUser {
   id            String @id @default(cuid())
   walletAddress String @unique

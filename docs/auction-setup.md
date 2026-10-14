@@ -15,7 +15,7 @@
 
 ## Configuration
 
-Copy the names from `.env.example` into your environment. Point `DATABASE_URL` at the same PostgreSQL database used by Parley/Run/Dev; no database URL is present in any of the three checked project environments yet. The migration adds only `Memory*` tables and does not alter existing application tables. Run `npm run db:migrate`; never run reset/db push on the shared database.
+Copy the names from `.env.example` into your environment. Point `DATABASE_URL` at the same PostgreSQL database used by Parley/Run/Dev; keep its credentials private. The migration adds only `Memory*` tables and does not alter existing application tables. The three Prisma schemas now include the same Memory, Parley and DevRel models. Use `npm run db:studio` to load `.env.local` explicitly. Run `npm run db:migrate`; never run reset/db push on the shared database.
 
 Owner tools are local-only: their source lives in ignored `.local/owner/`, and `npm run dev` loads their API routes. Production builds remove those routes and deny administrative access, even if an owner allowlist is accidentally configured. Keep a private backup of `.local/owner/`; a fresh Git clone does not contain it. Set `AUCTION_ADMIN_WALLETS` in your ignored `.env.local` to the owner's wallet address (or a comma-separated allowlist). Log in with that wallet, open the bidding dialog, and use OWNER CONTROLS to start the countdown or close the auction. A paid current bid is required. Manual closing waits for in-flight payments and outstanding refunds; it records the current paid bidder as the winner. Starting a countdown again cannot reset an existing clock. Owner actions are recorded in `MemoryAuctionAction`.
 

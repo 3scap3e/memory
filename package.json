@@ -9,11 +9,13 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "node scripts/prisma-local.mjs migrate deploy",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "anvil:setup": "node scripts/setup-anvil.mjs",
     "dev:anvil": "node scripts/dev-anvil.mjs",
-    "test:anvil": "node scripts/test-anvil.mjs"
+    "test:anvil": "node scripts/test-anvil.mjs",
+    "db:studio": "node scripts/prisma-local.mjs studio",
+    "db:sync": "node scripts/sync-shared-database.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
