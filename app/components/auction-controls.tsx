@@ -123,11 +123,11 @@ export default function AuctionControls({ productId, title }: { productId: strin
   return <>
     <AuctionProgress auction={auction} serverNow={view?.serverNow} />
     {auction?.status === "closed" ? <div className="closed-auction-result" role="status"><span>WINNING BID:</span><span>{formatAmount(auction.currentAmount)} USDC</span></div> : <div aria-busy={confirming} className={`bid-row ${confirming ? "bid-confirming" : ""} ${ownBid ? "your-current-bid" : ""}`}>
-      <div className="bid-field"><span>{auction?.currentAmount && auction.currentAmount !== "0" ? "CURRENT BID:" : "STARTING MIN:"}</span><span className="bid-value">{confirming ? <span className="bid-confirmation-loader" role="status" aria-label="Confirming your payment" /> : formatAmount(auction?.currentAmount && auction.currentAmount !== "0" ? auction.currentAmount : auction?.startingAmount || startingAmount)}</span></div>
+      <div className="bid-field"><span>{auction?.currentAmount && auction.currentAmount !== "0" ? "CURRENT BID:" : "INIT POSITION:"}</span><span className="bid-value">{confirming ? <span className="bid-confirmation-loader" role="status" aria-label="Confirming your payment" /> : formatAmount(auction?.currentAmount && auction.currentAmount !== "0" ? auction.currentAmount : auction?.startingAmount || startingAmount)}</span></div>
       <div className="bid-field next-bid"><span>NEXT UP:</span><span className="bid-value">{formatAmount(auction?.nextAmount || startingAmount)}</span></div>
       <button className="bid-button" type="button" onClick={open} disabled={!!pending} aria-label={`Bid on ${title}`}>$</button>
     </div>}
-    {ownBid && (auction?.status === "closed" ? <div className="your-bid-status winner-actions"><p role="status">YOU WON THIS AUCTION</p><WinnerShipping key={productId} auctionId={productId} title={title} compact /></div> : <p className="your-bid-status" role="status">YOUR BID IS ACTIVE · YOU’RE LEADING</p>)}
+    {ownBid && (auction?.status === "closed" ? <div className="your-bid-status winner-actions"><p role="status">You won the bonus prize!</p><WinnerShipping key={productId} auctionId={productId} title={title} compact /></div> : <p className="your-bid-status" role="status">YOUR BID IS ACTIVE · YOU’RE LEADING</p>)}
     {!confirming && auction?.busy && <p className="auction-status" role="status">ANOTHER BID IS SETTLING</p>}
     {error && pending && <p className="bid-error" role="alert">{error}</p>}
     {message && !dialog.current?.open && <p className="auction-feedback" role="status">{message}</p>}
