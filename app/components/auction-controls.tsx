@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import WinnerShipping from "./shared-account/WinnerShipping";
 import AuctionProgress from "./auction-progress";
 import type { Address, Hash } from "viem";
-import { formatAmount, MAX_REFUND_FEE, AUCTION_ITEMS } from "@/lib/auction-rules";
+import { formatAmount, MAX_REFUND_FEE, AUCTION_ITEMS, minimumBid } from "@/lib/auction-rules";
 import { api, mobileWalletEnabled, payBid } from "@/lib/client/wallet";
 
 type Quote = { ownerWallet?:Address; id: string; amount: string; fee: string; treasury: Address; previousAmount: string; expiresAt: string };
@@ -62,7 +62,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
 
   function open() {
     setOpenProduct({ id: productId, title });
-    setAmount(formatAmount(auction?.nextAmount || startingAmount));
+    setAmount(formatAmount(auction?.nextAmount || minimumBid(0n, startingAmount)));
     setOpeningMinimum(formatAmount(auction?.startingAmount||startingAmount));
     setAdminConfirmation(false);
     setError(""); if (!pending) setMessage(""); setAgreed(false);
@@ -109,7 +109,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
   }
   async function updateOpeningMinimum(){
     if(readOnly)return;setBusy(true);setError("");
-    try{await api(`/api/admin/auctions/${openProduct.id}`,{action:"set_starting_minimum",amount:openingMinimum});await reload();setMessage("Starting minimum updated.");}
+    try{await api(`/api/admin/auctions/${openProduct.id}`,{action:"set_starting_minimum",amount:openingMinimum});await reload();setMessage("House bid updated.");}
     catch(e){setError(walletErrorMessage(e,"Couldn’t complete the request. Please check your wallet and try again."));}finally{setBusy(false);}
   }
   async function manageAuction(action: "start_countdown" | "close") {
@@ -123,8 +123,8 @@ export default function AuctionControls({ productId, title }: { productId: strin
   return <>
     <AuctionProgress auction={auction} serverNow={view?.serverNow} />
     {auction?.status === "closed" ? <div className="closed-auction-result" role="status"><span>WINNING BID:</span><span>{formatAmount(auction.currentAmount)} USDC</span></div> : <div aria-busy={confirming} className={`bid-row ${confirming ? "bid-confirming" : ""} ${ownBid ? "your-current-bid" : ""}`}>
-      <div className="bid-field"><span>{auction?.currentAmount && auction.currentAmount !== "0" ? "CURRENT BID:" : "INIT POSITION:"}</span><span className="bid-value">{confirming ? <span className="bid-confirmation-loader" role="status" aria-label="Confirming your payment" /> : formatAmount(auction?.currentAmount && auction.currentAmount !== "0" ? auction.currentAmount : auction?.startingAmount || startingAmount)}</span></div>
-      <div className="bid-field next-bid"><span>NEXT UP:</span><span className="bid-value">{formatAmount(auction?.nextAmount || startingAmount)}</span></div>
+      <div className="bid-field"><span>{auction?.currentAmount && auction.currentAmount !== "0" ? "CURRENT BID:" : "HOUSE BID:"}</span><span className="bid-value">{confirming ? <span className="bid-confirmation-loader" role="status" aria-label="Confirming your payment" /> : formatAmount(auction?.currentAmount && auction.currentAmount !== "0" ? auction.currentAmount : auction?.startingAmount || startingAmount)}</span></div>
+      <div className="bid-field next-bid"><span>NEXT UP:</span><span className="bid-value">{formatAmount(auction?.nextAmount || minimumBid(0n, startingAmount))}</span></div>
       <button className="bid-button" type="button" onClick={open} disabled={!!pending} aria-label={`Bid on ${title}`}>$</button>
     </div>}
     {ownBid && (auction?.status === "closed" ? <div className="your-bid-status winner-actions"><p role="status">You won the bonus prize!</p><WinnerShipping key={productId} auctionId={productId} title={title} compact /></div> : <p className="your-bid-status" role="status">YOUR BID IS ACTIVE · YOU’RE LEADING</p>)}
@@ -143,7 +143,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
         {!view?.ready && <p className="dialog-notice">Auctions are being prepared. Payments are not open yet.</p>}
         {process.env.NODE_ENV === "development" && me.isAdmin && <div className="owner-controls">
           <p>OWNER CONTROLS</p>
-          {(!auction?.currentAmount||auction.currentAmount==="0")&&<div><label htmlFor="opening-minimum">STARTING MINIMUM (USDC)</label><input id="opening-minimum" type="text" inputMode="decimal" value={openingMinimum} onChange={e=>setOpeningMinimum(e.target.value)} disabled={readOnly||busy}/><button type="button" disabled={readOnly||busy||!!quote||!!pending} onClick={updateOpeningMinimum}>UPDATE STARTING MINIMUM</button></div>}
+          {(!auction?.currentAmount||auction.currentAmount==="0")&&<div><label htmlFor="opening-minimum">HOUSE BID (USDC)</label><input id="opening-minimum" type="text" inputMode="decimal" value={openingMinimum} onChange={e=>setOpeningMinimum(e.target.value)} disabled={readOnly||busy}/><button type="button" disabled={readOnly||busy||!!quote||!!pending} onClick={updateOpeningMinimum}>UPDATE HOUSE BID</button></div>}
           <button type="button" disabled={readOnly || busy || !!pending || !!quote || !!auction?.endsAt || !auction?.currentAmount || auction.currentAmount === "0" || auction.status === "closed"} onClick={() => manageAuction("start_countdown")}>START 24-HOUR COUNTDOWN</button>
           {!adminConfirmation ? <button type="button" disabled={readOnly || busy || !!pending || !!quote || !auction?.currentAmount || auction.currentAmount === "0" || auction.status === "closed"} onClick={() => setAdminConfirmation(true)}>CLOSE AUCTION…</button> : <div><p>Close this auction and make the current paid bidder the winner?</p><button type="button" disabled={busy} onClick={() => manageAuction("close")}>CONFIRM CLOSE</button><button type="button" disabled={busy} onClick={() => setAdminConfirmation(false)}>KEEP OPEN</button></div>}
         </div>}
@@ -156,7 +156,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
         </div> : <form onSubmit={previewBid}>
           <label htmlFor="bid-amount">YOUR BID (USDC)</label>
           <input id="bid-amount" type="text" inputMode="decimal" autoComplete="off" maxLength={15} value={amount} onChange={e => setAmount(e.target.value)} required disabled={readOnly || busy || !view?.ready} />
-          <p>The opening bid must meet this auction’s specified starting minimum. Later bids must increase by at least 25 USDC. Outgoing gas comes only from the outbid bidder’s reward, up to 0.05 USDC.</p>
+          <p>Your first bid must be at least 25 USDC above the house bid. Every later bid must increase by at least 25 USDC. Outgoing gas comes only from the outbid bidder’s reward, up to 0.05 USDC.</p>
           <button type="submit" disabled={readOnly || busy || !view?.ready}>{busy ? "GETTING QUOTE…" : "REVIEW BID"}</button>
         </form>}
       </>}

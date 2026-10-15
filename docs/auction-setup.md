@@ -4,14 +4,14 @@
 
 - Three separate auctions: `kingston-64`, `corsair-128`, `suprim-4090`.
 - Wallet-signature login only. Base mainnet (chain 8453), native USDC only.
-- Opening minimums: 225 USDC for Kingston, 375 USDC for Corsair, 1,025 USDC for Suprim. Every following bid must increase by at least 25 USDC.
+- House bids: 225 USDC for Kingston, 375 USDC for Corsair, 1,025 USDC for Suprim. The first payable bids are 250, 400 and 1,050 USDC respectively. Every bid must exceed the preceding bid or initial house position by at least 25 USDC.
 - An outbid wallet receives its whole bid plus floor(increase / 3) in USDC's six-decimal units, minus the quoted outgoing fee. That fee is at most 0.05 USDC and cannot reduce principal.
 - Fees are estimated with a buffer and disclosed before payment; they are quoted service fees covering gas, not a promise to deduct the exact eventual receipt cost. They stay outside Stagerunner's auction allocation. The owner’s treasury wallet must hold ETH to approve manual transfers.
 - The owner decides when discovery conditions are met and manually starts each 24-hour countdown. No price/customer/bidder thresholds are encoded or exposed through the public API. Conditions do not prevent ordinary bidding before a countdown.
 - The latest accepted bid when the owner starts the countdown sets the initial extension baseline. Sum full accepted bid amounts, not increases, in the latest 24 hours of the current extension cycle. At 10× the baseline, add 24 hours to the existing deadline. The reached target becomes the next baseline; consume the cycle's payments once. One accepted payment can earn at most one extension; excess is not carried forward.
 - Example: baseline 150, cumulative target 1,500; after extension, baseline 1,500 and cumulative target 15,000.
 - Bids paid before the owner starts the countdown do not count toward an extension.
-- Before the first confirmed payment, the UI says STARTING MIN. Afterward, it says CURRENT BID. The public panel shows discovery copy rather than condition counters.
+- Before the first confirmed payment, the UI says HOUSE BID. Afterward, it says CURRENT BID. The public panel shows discovery copy rather than condition counters.
 
 ## Configuration
 

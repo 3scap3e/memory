@@ -30,4 +30,4 @@ export function settlement(previous: bigint, next: bigint, fee: bigint) {
   return { principal: previous, grossReward, netReward: grossReward - fee, fee, payout: previous + grossReward - fee, retained: next - previous - grossReward };
 }
 
-export function minimumBid(current: bigint, opening: bigint): bigint { return current > 0n ? current + MIN_INCREMENT : opening; }
+export function minimumBid(current: bigint, opening: bigint): bigint { return (current > 0n ? current : opening) + MIN_INCREMENT; }

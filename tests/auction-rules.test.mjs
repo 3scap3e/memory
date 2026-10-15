@@ -62,8 +62,8 @@ test('multiple increments preserve principal, balance, and the two-thirds floor'
   }
 });
 
-test('specified starting minimums apply before the first bid, then the 25 increment applies', async()=>{
+test('house bid plus 25 applies to the first bid and every following bid', async()=>{
  const { AUCTION_ITEMS, minimumBid } = await import('../lib/auction-rules.ts');
- assert.deepEqual(AUCTION_ITEMS.map(i=>minimumBid(0n,i.startingAmount)),[225000000n,375000000n,1025000000n]);
+ assert.deepEqual(AUCTION_ITEMS.map(i=>minimumBid(0n,i.startingAmount)),[250000000n,400000000n,1050000000n]);
  assert.equal(minimumBid(250000000n,225000000n),275000000n);
 });
