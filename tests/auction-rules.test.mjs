@@ -67,3 +67,10 @@ test('house bid plus 25 applies to the first bid and every following bid', async
  assert.deepEqual(AUCTION_ITEMS.map(i=>minimumBid(0n,i.startingAmount)),[250000000n,400000000n,1050000000n]);
  assert.equal(minimumBid(250000000n,225000000n),275000000n);
 });
+
+test('kingston is recorded as sold over the counter for 550 USDC', async()=>{
+ const { otcSale } = await import('../lib/auction-rules.ts');
+ assert.equal(otcSale('kingston-64'),550000000n);
+ assert.equal(otcSale('corsair-128'),null);
+ assert.equal(otcSale('suprim-4090'),null);
+});

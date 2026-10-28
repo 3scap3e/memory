@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { getAddress, isHash, type Address, type Hash } from "viem";
-import { AUCTION_ITEMS, MAX_REFUND_FEE, minimumBid, parseAmount, settlement } from "../auction-rules";
+import { AUCTION_ITEMS, MAX_REFUND_FEE, minimumBid, otcSale, parseAmount, settlement } from "../auction-rules";
 import { db } from "./db";
 import { HttpError } from "./http";
 import { clockNow, confirmationGraceMs, finalQuotePauseMs, quoteDeadlineBufferMs, estimateFee, ready, requirePayments,requireNetwork, treasury, verifyPayment, verifyRefund } from "./chain";
@@ -26,9 +26,14 @@ export async function auctionViews(userId?: string) {
   const ownedLeaders = userId ? await db().memoryBid.findMany({ where: { userId, id: { in: auctions.flatMap(a => a.currentBidId ? [a.currentBidId] : []) } }, select: { id: true } }) : [];
   const ownIds = new Set(ownedLeaders.map(b => b.id));
   const bids = userId ? await db().memoryBid.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 30 }) : [];
-  return { auctions: sendJson(auctions.map(a => ({ id: a.id, isYourBid: !!a.currentBidId && ownIds.has(a.currentBidId), currentAmount: a.currentAmount, startingAmount: a.openingAmount, nextAmount: minimumBid(a.currentAmount, a.openingAmount), poolAmount: a.poolAmount, status: a.status, endsAt: a.endsAt, extensions: a.extensions, extensionBaseline: a.extensionBaseline, extensionVolume: a.extensionVolume, busy: !!a.pendingUntil && a.pendingUntil > now }))), bids: sendJson(bids.map(b => ({ id: b.id, auctionId: b.auctionId, amount: b.amount, status: b.status, paymentHash: b.paymentHash ?? b.submittedHash, expiresAt: b.expiresAt }))), ready: ready(), serverNow: now.getTime(), maxRefundFee: MAX_REFUND_FEE.toString() };
+  return { auctions: sendJson(auctions.map(a => {
+    const sold = otcSale(a.id);
+    if (sold !== null) return { id: a.id, isYourBid: false, currentAmount: sold, startingAmount: a.openingAmount, nextAmount: sold, poolAmount: a.poolAmount, status: "sold", endsAt: null, extensions: a.extensions, extensionBaseline: a.extensionBaseline, extensionVolume: a.extensionVolume, busy: false };
+    return { id: a.id, isYourBid: !!a.currentBidId && ownIds.has(a.currentBidId), currentAmount: a.currentAmount, startingAmount: a.openingAmount, nextAmount: minimumBid(a.currentAmount, a.openingAmount), poolAmount: a.poolAmount, status: a.status, endsAt: a.endsAt, extensions: a.extensions, extensionBaseline: a.extensionBaseline, extensionVolume: a.extensionVolume, busy: !!a.pendingUntil && a.pendingUntil > now };
+  })), bids: sendJson(bids.map(b => ({ id: b.id, auctionId: b.auctionId, amount: b.amount, status: b.status, paymentHash: b.paymentHash ?? b.submittedHash, expiresAt: b.expiresAt }))), ready: ready(), serverNow: now.getTime(), maxRefundFee: MAX_REFUND_FEE.toString() };
 }
 export async function createQuote(auctionId: string, userId: string, raw: unknown) {
+  if (otcSale(auctionId) !== null) throw new HttpError(409, "This item was sold over the counter. Bidding is closed.");
   await requirePayments();
   let amount: bigint;
   try { amount = parseAmount(raw); } catch (e) { throw new HttpError(400, (e as Error).message); }

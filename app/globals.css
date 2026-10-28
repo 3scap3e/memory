@@ -261,6 +261,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button { -webkit-app
 
 .auction-panel-leading { border-color: #6ab98b; box-shadow: 0 0 18px rgb(106 185 139 / 18%); }
 .product-tab.your-leading-tab { border-color: #6ab98b; color: #a4dcbb; box-shadow: inset 0 0 12px rgb(106 185 139 / 16%); }
+.product-tab .sold-tag { color: #b0baff; }
 .your-current-bid .bid-field:first-child { color: #a4dcbb; }
 .your-current-bid .bid-button { border-color: #6ab98b; color: #a4dcbb; }
 .your-bid-status { margin-top: 14px; padding: 10px 12px; border: 1px solid #6ab98b; background: #071a0e; color: #a4dcbb; font-size: 13px; line-height: 1.7; }

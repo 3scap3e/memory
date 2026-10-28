@@ -17,6 +17,7 @@ const products = [
 export default function MemoryInterface() {
   const { me, view } = useWallet();
   const ownBid = (index: number) => !!me && !!view?.auctions.find(a => a.id === AUCTION_ITEMS[index].id)?.isYourBid;
+  const sold = (index: number) => view?.auctions.find(a => a.id === AUCTION_ITEMS[index].id)?.status === "sold";
   const [activeTab, setActiveTab] = useState(0);
   const [featuredProduct, setFeaturedProduct] = useState(0);
 
@@ -48,7 +49,7 @@ export default function MemoryInterface() {
           <section className={`auction-panel ${ownBid(featuredProduct) ? "auction-panel-leading" : ""}`} aria-label="Hardware auction preview">
             <div className="product-tabs" aria-label="Choose hardware">
               {products.map((product, index) => (
-                <button key={product.label} type="button" className={`product-tab ${activeTab === index ? "is-active" : ""} ${ownBid(index) ? "your-leading-tab" : ""}`} aria-pressed={activeTab === index} onClick={() => selectProduct(index)}>{product.label}</button>
+                <button key={product.label} type="button" className={`product-tab ${activeTab === index ? "is-active" : ""} ${ownBid(index) ? "your-leading-tab" : ""}`} aria-pressed={activeTab === index} onClick={() => selectProduct(index)}>{product.label}{sold(index) && <span className="sold-tag"> · SOLD</span>}</button>
               ))}
             </div>
             <div className="auction-story">

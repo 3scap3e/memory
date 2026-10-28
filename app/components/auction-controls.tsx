@@ -122,7 +122,7 @@ export default function AuctionControls({ productId, title }: { productId: strin
   const ownBid = !!me && !!auction?.isYourBid;
   return <>
     <AuctionProgress auction={auction} serverNow={view?.serverNow} />
-    {auction?.status === "closed" ? <div className="closed-auction-result" role="status"><span>WINNING BID:</span><span>{formatAmount(auction.currentAmount)} USDC</span></div> : <div aria-busy={confirming} className={`bid-row ${confirming ? "bid-confirming" : ""} ${ownBid ? "your-current-bid" : ""}`}>
+    {auction?.status === "sold" ? <div className="closed-auction-result" role="status"><span>SOLD OTC:</span><span>{formatAmount(auction.currentAmount)} USDC</span></div> : auction?.status === "closed" ? <div className="closed-auction-result" role="status"><span>WINNING BID:</span><span>{formatAmount(auction.currentAmount)} USDC</span></div> : <div aria-busy={confirming} className={`bid-row ${confirming ? "bid-confirming" : ""} ${ownBid ? "your-current-bid" : ""}`}>
       <div className="bid-field"><span>{auction?.currentAmount && auction.currentAmount !== "0" ? "CURRENT BID:" : "HOUSE BID:"}</span><span className="bid-value">{confirming ? <span className="bid-confirmation-loader" role="status" aria-label="Confirming your payment" /> : formatAmount(auction?.currentAmount && auction.currentAmount !== "0" ? auction.currentAmount : auction?.startingAmount || startingAmount)}</span></div>
       <div className="bid-field next-bid"><span>NEXT UP:</span><span className="bid-value">{formatAmount(auction?.nextAmount || minimumBid(0n, startingAmount))}</span></div>
       <button className="bid-button" type="button" onClick={open} disabled={!!pending} aria-label={`Bid on ${title}`}>$</button>

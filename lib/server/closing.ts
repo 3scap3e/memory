@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
-import { AUCTION_ITEMS,parseAmount } from "../auction-rules";
+import { AUCTION_ITEMS,otcSale,parseAmount } from "../auction-rules";
 import { countBid, DAY_MS } from "../closing-rules";
 import { assertManualAction, type AuctionAction } from "../admin-rules";
 import { clockNow, countdownMs } from "./chain";
@@ -32,6 +32,7 @@ export async function updateClock(tx: Database, id: string, paidAt?: Date, amoun
   await tx.memoryAuction.update({ where: { id }, data: { endsAt: new Date(result.deadline), extensionBaseline: result.baseline, extensionVolume: result.volume, extensions: { increment: result.extended ? 1 : 0 }, ...(result.extended ? { extensionWindowStartedAt: paidAt } : {}) } });
 }
 export async function manualAction(id: string, action: AuctionAction, actor: string) {
+  if (otcSale(id) !== null) throw new HttpError(409, "This item was sold over the counter");
   return db().$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM "MemoryAuction" WHERE id = ${id} FOR UPDATE`;
     const a = await tx.memoryAuction.findUnique({ where: { id } });
@@ -51,7 +52,7 @@ export async function sweepClocks() {
     await db().$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM "MemoryAuction" WHERE id = ${item.id} FOR UPDATE`;
       const a = await tx.memoryAuction.findUnique({ where: { id: item.id } });
-      if (!a || a.status !== "open") return;
+      if (!a || a.status !== "open" || otcSale(item.id) !== null) return;
       await updateClock(tx, item.id);
       const fresh = await tx.memoryAuction.findUniqueOrThrow({ where: { id: item.id } });
       const now = await clockNow();
@@ -67,6 +68,7 @@ export async function sweepClocks() {
 }
 
 export async function setOpeningMinimum(id:string,raw:unknown,actor:string){
+ if(otcSale(id)!==null)throw new HttpError(409,"This item was sold over the counter");
  let amount:bigint;try{amount=parseAmount(raw);}catch(e){throw new HttpError(400,(e as Error).message);}
  return db().$transaction(async tx=>{
   await tx.$queryRaw`SELECT id FROM "MemoryAuction" WHERE id = ${id} FOR UPDATE`;
