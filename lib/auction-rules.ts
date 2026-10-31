@@ -6,7 +6,7 @@ export const MAX_REFUND_FEE = 50_000n; // 0.05 USDC; deducted only from rewards.
 export const AUCTION_ITEMS = [
   { id: "kingston-64", title: "64GB KINGSTON FURY BEAST", startingAmount: 225_000_000n, soldAmount: 550_000_000n },
   { id: "corsair-128", title: "128GB CORSAIR DOMINATOR", startingAmount: 375_000_000n, soldAmount: 1_147_000_000n },
-  { id: "suprim-4090", title: "MSI RTX 4090 SUPRIM LIQUID X", startingAmount: 1_025_000_000n },
+  { id: "suprim-4090", title: "MSI RTX 4090 SUPRIM LIQUID X", startingAmount: 1_025_000_000n, soldAmount: 2_500_000_000n },
 ] as const;
 export function otcSale(id: string): bigint | null {
   const item = AUCTION_ITEMS.find(entry => entry.id === id);

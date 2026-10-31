@@ -68,9 +68,10 @@ test('house bid plus 25 applies to the first bid and every following bid', async
  assert.equal(minimumBid(250000000n,225000000n),275000000n);
 });
 
-test('kingston and corsair are recorded as sold over the counter', async()=>{
+test('all three items are recorded as sold over the counter', async()=>{
  const { otcSale } = await import('../lib/auction-rules.ts');
  assert.equal(otcSale('kingston-64'),550000000n);
  assert.equal(otcSale('corsair-128'),1147000000n);
- assert.equal(otcSale('suprim-4090'),null);
+ assert.equal(otcSale('suprim-4090'),2500000000n);
+ assert.equal(otcSale('unknown'),null);
 });
